@@ -1,0 +1,40 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Docker image
+        run: docker build --tag ${name}:${cat app/VERSION} .
+      - name: Save the Docker image
+        run: docker save ${name}:${cat app/VERSION} -o my-go-app.tar
+      - shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          FILE_PATH: my-go-app.tar
+          AWS_BUCKET: silas-s3-bucket
+          AWS_PATH: container-registry/my-go-app
+        run: |
+          container_version=$(cat app/VERSION)
+          date=$(date +"%a, %d %b %Y %T %z")
+          acl="x-amz-acl:public-read"
+          content_type='application/x-compressed-tar'
+          string="PUT\n\n$content_type\n$date\n$acl\n/$AWS_BUCKET/$AWS_PATH/v$container_version.tar"
+          signature=$(echo -en "${string}" | openssl sha1 -hmac "${S3SECRET}" -binary | base64)
+          curl -X PUT -T "$FILE_PATH" \
+            -H "Host: $AWS_BUCKET.s3.amazonaws.com" \
+            -H "Date: $date" \
+            -H "Content-Type: $content_type" \
+            -H "$acl" \
+            -H "Authorization: AWS ${S3KEY}:$signature" \
+            "https://$AWS_BUCKET.s3.amazonaws.com/$AWS_PATH/v$container_version.tar"
+        }
+
