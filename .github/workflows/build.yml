@@ -12,7 +12,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Get version
@@ -28,4 +28,4 @@ jobs:
           S3_REGION: eu-north-1
           S3_BUCKET: silas-s3-bucket
           AWS_PATH: container-registry/${{ env.IMAGE_NAME }}.tar
-        run: curl --progress-bar -X PUT --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" --upload-file ${TAR_NAME} https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH
+        run: curl --fail-with-body -X PUT --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" --upload-file ${TAR_NAME} https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH
