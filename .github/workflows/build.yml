@@ -9,6 +9,11 @@ on:
 env:
   IMAGE_NAME: go-project
   TAR_NAME: go-project.tar
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  S3_REGION: eu-north-1
+  S3_BUCKET: silas-s3-bucket
+  AWS_PATH: container-registry/${{ env.IMAGE_NAME }}/v${{ env.IMAGE_VERSION }}.tar
 
 jobs:
   build:
@@ -21,11 +26,15 @@ jobs:
         run: docker build --tag $IMAGE_NAME:$IMAGE_VERSION .
       - name: Save the Docker image
         run: docker save $IMAGE_NAME:$IMAGE_VERSION -o $TAR_NAME
+      - name: Check if the version already exists in S3
+        run: |
+          response=$( curl --fail --silent --show-error -X GET --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" --output /dev/null https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH 2>&1 )
+          if [[ $response == *"404"* ]]; then
+            echo "Version not found in S3";
+            exit 0;
+          else
+            echo "Version already exists in S3";
+            exit 1;
+          fi
       - name: Upload the Docker image to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          S3_REGION: eu-north-1
-          S3_BUCKET: silas-s3-bucket
-          AWS_PATH: container-registry/v${{ env.IMAGE_VERSION }}.tar
         run: curl --fail-with-body -X PUT --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" --upload-file ${TAR_NAME} https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH
