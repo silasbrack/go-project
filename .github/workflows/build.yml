@@ -28,15 +28,7 @@ jobs:
       - name: Define AWS_PATH
         run: echo "AWS_PATH=container-registry/${{ env.IMAGE_NAME }}/v${{ env.IMAGE_VERSION }}.tar" >> $GITHUB_ENV
       - name: Check if the version already exists in S3
-        run: |
-          response=$( curl --fail --silent --show-error -X GET --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" --output /dev/null https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH 2>&1 )
-          if [[ $response == *"404"* ]]; then
-            echo "Version not found in S3";
-            exit 0;
-          else
-            echo "Version already exists in S3";
-            exit 1;
-          fi
+        run: ! curl --head --fail --silent --show-error --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH
       - name: Upload the Docker image to S3
         env:
           AWS_PATH: container-registry/${{ env.IMAGE_NAME }}/v${{ env.IMAGE_VERSION }}.tar
