@@ -22,7 +22,7 @@ jobs:
       - name: Get version
         run: echo "IMAGE_VERSION=$(cat VERSION)" >> $GITHUB_ENV
       - name: Build the Docker image
-        run: docker build --tag $IMAGE_NAME:$IMAGE_VERSION cache-from type=gha cache-to type=gha,mode=max .
+        run: docker build --tag $IMAGE_NAME:$IMAGE_VERSION --cache-from type=gha --cache-to type=gha,mode=max .
       - name: Save the Docker image
         run: docker save $IMAGE_NAME:$IMAGE_VERSION -o $TAR_NAME
       - name: Define AWS_PATH
