@@ -45,7 +45,7 @@ docker-build: test
 ## docker-run: run project in a container
 .PHONY: docker-run
 docker-run:
-	docker run -it --env-file .env --rm -p 80:80 ${name}
+	docker run -it --env-file .env --rm -p 8080:8080 ${name}
 
 ## start: build and run local project
 .PHONY: start
