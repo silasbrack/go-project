@@ -19,18 +19,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Get version
+      - name: Define IMAGE_VERSION environment variable
         run: echo "IMAGE_VERSION=$(cat VERSION)" >> $GITHUB_ENV
       - name: Build the Docker image
         run: docker build --tag $IMAGE_NAME:$IMAGE_VERSION --cache-from type=gha --cache-to type=gha,mode=max .
       - name: Save the Docker image
         run: docker save $IMAGE_NAME:$IMAGE_VERSION -o $TAR_NAME
-      - name: Define AWS_PATH
+      - name: Define AWS_PATH environment variable
         run: echo "AWS_PATH=container-registry/${{ env.IMAGE_NAME }}/v${{ env.IMAGE_VERSION }}.tar" >> $GITHUB_ENV
       - name: Check if the version already exists in S3
         run: |
           ! curl --head --fail --silent --show-error --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH
       - name: Upload the Docker image to S3
-        env:
-          AWS_PATH: container-registry/${{ env.IMAGE_NAME }}/v${{ env.IMAGE_VERSION }}.tar
         run: curl --fail-with-body -X PUT --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" --aws-sigv4 "aws:amz:${S3_REGION}:s3" --upload-file ${TAR_NAME} https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/$AWS_PATH
